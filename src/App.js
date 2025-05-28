@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './App.css';
 
 // URL base do backend
-const API_URL = 'http://localhost:3001/alunos';
+const API_URL = 'https://backenda2computacaonuvem.onrender.com/alunos';
 
 function App() {
   // Estado inicial dos alunos
