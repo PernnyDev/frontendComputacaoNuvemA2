@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cadastro de Alunos</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+  <div class="container py-4">
+    <h1 class="mb-4">Cadastro de Alunos</h1>
+    <div id="mensagem"></div>
+    <form id="formAluno" class="row g-3 mb-4">
+      <input type="hidden" id="id_aluno">
+      <div class="col-md-6">
+        <label for="nome_completo" class="form-label">Nome Completo*</label>
+        <input type="text" class="form-control" id="nome_completo" required>
+      </div>
+      <div class="col-md-6">
+        <label for="usuario_acesso" class="form-label">Usuário de Acesso*</label>
+        <input type="text" class="form-control" id="usuario_acesso" required>
+      </div>
+      <div class="col-md-6">
+        <label for="senha" class="form-label">Senha*</label>
+        <input type="password" class="form-control" id="senha" required>
+      </div>
+      <div class="col-md-6">
+        <label for="email_aluno" class="form-label">Email*</label>
+        <input type="email" class="form-control" id="email_aluno" required>
+      </div>
+      <div class="col-12">
+        <label for="observacao" class="form-label">Observação</label>
+        <input type="text" class="form-control" id="observacao">
+      </div>
+      <div class="col-12">
+        <button type="submit" class="btn btn-primary" id="btnSalvar">Cadastrar</button>
+        <button type="button" class="btn btn-secondary d-none" id="btnCancelar">Cancelar</button>
+      </div>
+    </form>
+    <h2 class="mb-3">Alunos Cadastrados</h2>
+    <div class="table-responsive">
+      <table class="table table-bordered align-middle" id="tabelaAlunos">
+        <thead class="table-light">
+          <tr>
+            <th>Nome</th>
+            <th>Usuário</th>
+            <th>Email</th>
+            <th>Observação</th>
+            <th>Data Cadastro</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <p class="text-muted mt-3">* Campos obrigatórios</p>
+  </div>
+  <script>
+    const API_URL = 'https://backenda2computacaonuvem.onrender.com/alunos'; // Troque para a URL do seu backend
+
+    function mostrarMensagem(msg, tipo = 'success') {
+      document.getElementById('mensagem').innerHTML = `<div class="alert alert-${tipo} alert-dismissible fade show" role="alert">${msg}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>`;
+    }
+
+    function limparFormulario() {
+      document.getElementById('formAluno').reset();
+      document.getElementById('id_aluno').value = '';
+      document.getElementById('btnSalvar').textContent = 'Cadastrar';
+      document.getElementById('btnCancelar').classList.add('d-none');
+      document.getElementById('senha').required = true;
+    }
+
+    function preencherFormulario(aluno) {
+      document.getElementById('id_aluno').value = aluno.id_aluno;
+      document.getElementById('nome_completo').value = aluno.nome_completo;
+      document.getElementById('usuario_acesso').value = aluno.usuario_acesso;
+      document.getElementById('senha').value = '';
+      document.getElementById('email_aluno').value = aluno.email_aluno;
+      document.getElementById('observacao').value = aluno.observacao || '';
+      document.getElementById('btnSalvar').textContent = 'Atualizar';
+      document.getElementById('btnCancelar').classList.remove('d-none');
+      document.getElementById('senha').required = false;
+    }
+
+    async function carregarAlunos() {
+      try {
+        const res = await fetch(API_URL);
+        const alunos = await res.json();
+        const tbody = document.querySelector('#tabelaAlunos tbody');
+        tbody.innerHTML = '';
+        if (alunos.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6">Nenhum aluno cadastrado.</td></tr>';
+        } else {
+          alunos.forEach(aluno => {
+            tbody.innerHTML += `<tr>
+              <td>${aluno.nome_completo}</td>
+              <td>${aluno.usuario_acesso}</td>
+              <td>${aluno.email_aluno}</td>
+              <td>${aluno.observacao || ''}</td>
+              <td>${aluno.data_cadastro || ''}</td>
+              <td>
+                <button class="btn btn-sm btn-warning me-2" onclick='editarAluno(${JSON.stringify(aluno)})'>Editar</button>
+                <button class="btn btn-sm btn-danger" onclick='removerAluno(${aluno.id_aluno})'>Remover</button>
+              </td>
+            </tr>`;
+          });
+        }
+      } catch {
+        mostrarMensagem('Erro ao buscar alunos.', 'danger');
+      }
+    }
+
+    window.editarAluno = (aluno) => preencherFormulario(aluno);
+
+    window.removerAluno = async (id) => {
+      if (confirm('Tem certeza que deseja remover este aluno?')) {
+        try {
+          const res = await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+          if (!res.ok) throw new Error();
+          mostrarMensagem('Aluno removido.');
+          carregarAlunos();
+        } catch {
+          mostrarMensagem('Erro ao remover aluno.', 'danger');
+        }
+      }
+    };
+
+    document.getElementById('formAluno').onsubmit = async (e) => {
+      e.preventDefault();
+      const id = document.getElementById('id_aluno').value;
+      const aluno = {
+        nome_completo: document.getElementById('nome_completo').value,
+        usuario_acesso: document.getElementById('usuario_acesso').value,
+        senha: document.getElementById('senha').value,
+        email_aluno: document.getElementById('email_aluno').value,
+        observacao: document.getElementById('observacao').value
+      };
+      try {
+        let res;
+        if (id) {
+          res = await fetch(`${API_URL}/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(aluno)
+          });
+        } else {
+          res = await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(aluno)
+          });
+        }
+        if (!res.ok) throw new Error();
+        mostrarMensagem(id ? 'Aluno atualizado com sucesso!' : 'Aluno cadastrado com sucesso!');
+        limparFormulario();
+        carregarAlunos();
+      } catch {
+        mostrarMensagem('Erro ao salvar aluno.', 'danger');
+      }
+    };
+
+    document.getElementById('btnCancelar').onclick = limparFormulario;
+
+    carregarAlunos();
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
